@@ -66,7 +66,7 @@ model.to(device)
 epochs = 20
 steps = 0
 running_loss = 0
-print_every = 10
+print_every = 1
 train_losses, test_losses = [], []
 for epoch in range(epochs):
     for inputs, labels in train_data_loader:
@@ -110,6 +110,13 @@ torch.save(model, 'model.pt')
 Epoch 1/20.. Train loss: 0.220.. Test loss: 0.247.. Test accuracy: 0.899
 Epoch 1/20.. Train loss: 0.219.. Test loss: 0.215.. Test accuracy: 0.924
 Epoch 1/20.. Train loss: 0.205.. Test loss: 0.213.. Test accuracy: 0.929
+
+
+Epoch 2/20.. Train loss: 0.252.. Test loss: 0.258.. Test accuracy: 0.921
+Epoch 2/20.. Train loss: 0.343.. Test loss: 0.265.. Test accuracy: 0.919
+Epoch 2/20.. Train loss: 0.181.. Test loss: 0.257.. Test accuracy: 0.919
+Epoch 2/20.. Train loss: 0.325.. Test loss: 0.250.. Test accuracy: 0.914
+Epoch 2/20.. Train loss: 0.269.. Test loss: 0.248.. Test accuracy: 0.922
 '''
 
 
@@ -124,3 +131,5 @@ Epoch 1/20.. Train loss: 0.205.. Test loss: 0.213.. Test accuracy: 0.929
 
 
 
+
+# %%
