@@ -43,9 +43,7 @@ train_data, val_data = torch.utils.data.random_split(train_data, [2400,300])
 #%%
 train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
 test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=True)
-# %%
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device
+
 # %%
 x = train_data[0][0]
 print(x.shape)
