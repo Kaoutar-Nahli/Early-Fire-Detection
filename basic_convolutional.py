@@ -161,5 +161,18 @@ outputs = net(images)
 a , predicted = torch.max(outputs, 1)
 print('Predicted:', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
 # %%
-predicted
+labels.size()
+# %%
+#Accuracy 
+correct = 0
+total = 0
+with torch.no_grad():
+    for images, labels in test_data_loader:
+        output = net(images)
+        proba, predicted = torch.max(output.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+
+print (f'accuracy test set: {100 * correct/total}')
 # %%
