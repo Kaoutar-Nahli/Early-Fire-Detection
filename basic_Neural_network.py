@@ -1,3 +1,4 @@
+#%%
 import torch
 import torch.nn as nn
 from torchvision import datasets, transforms, models
@@ -16,7 +17,7 @@ from sklearn import preprocessing
 from sklearn import preprocessing
 from sklearn.metrics import f1_score
 import torch.optim as optim
-#%%
+
 transforms_train = transforms.Compose([transforms.Resize(225),
                                        transforms.CenterCrop(224),
                                        transforms.ToTensor(),
@@ -33,36 +34,37 @@ train_data = datasets.ImageFolder(root='data\FIRE-SMOKE-DATASET\Train', transfor
 test_data = datasets.ImageFolder(root='data\FIRE-SMOKE-DATASET\Test', transform=transforms_test)
 print(len(train_data), len(test_data))
 
-#%%
 #spliting the data
 train_data, val_data = torch.utils.data.random_split(train_data, [2400,300])
-#%%
+
 train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
 val_data_loader = torch.utils.data.DataLoader(val_data, batch_size=64, shuffle=True)
 test_data_loader = torch.utils.data.DataLoader(test_data,  batch_size=64, shuffle=True)
 
+classes =('Fire', 'Neutral', 'Smoke')
 
-#%%
-device = torch.device("cuda" if torch.cuda.is_available() 
-                                  else "cpu")
+dataiter = iter(train_data_loader)
+images, labels = dataiter.next()
+print(labels)
+classes[labels[0]]
 
-#%%
+device = torch.device("cuda" if torch.cuda.is_available()  else "cpu")
 
 class NeuralNetwork(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.layers = torch.nn.Sequential(
-            torch.nn.Linear(43008,512),
+            torch.nn.Linear(224,224),
             torch.nn.ReLU(),
-            torch.nn.Linear(512,50),
+            torch.nn.Linear(224,50),
             torch.nn.ReLU(),
-            torch.nn.Linear(50,10),
+            torch.nn.Flatten(),
+            torch.nn.Linear(33600,500),
+            torch.nn.ReLU(),
+            torch.nn.Linear(500,20),
+            torch.nn.ReLU(),
+            torch.nn.Linear(20,3),
             torch.nn.LogSoftmax(dim=1)
-            #Linear(2048, 512),
-            #ReLU(),
-            #Dropout(0.2),
-            #Linear(512, 10),
-            #LogSoftmax(dim=1))
         )
     def forward(self, X):
         return self.layers(X)
@@ -73,28 +75,34 @@ def train_nn(model, train_dataloader, epochs=10, lr=0.01, print_losses=True):
     # for param in model.parameters():
     #     print(f"Parameters are: {param}")
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9) # create optimiser
-    loss = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss()
     losses = []
     scores = []
     for epoch in range(epochs):
         for X,y in train_dataloader:
-            optimizer.step()
             optimizer.zero_grad()
             y_hat = net(X)
-            y_hat = torch.squeeze(y_hat)
-            print('y_hat shape:',y_hat.shape)
-            print('y shape:',y.shape)
-            loss =loss(y_hat,y)  # this only works if the target is dim-1 - should use n_labels
+            #y_hat = torch.argmax(y_hat, dim=1)
+            #y_hat = torch.squeeze(y_hat)
+            loss =criterion(y_hat,y)  # this only works if the target is dim-1 - should use n_labels
             if print_losses:
                 print(f"loss:{loss}")
             loss.backward()  # Upgrades the .grad -- of each of the parameters (based on backpopulating through the NN)
+            optimizer.step()
             losses.append(loss.item())
-            r2_score = sklearn.metrics.r2_score(y_hat.detach().numpy(), y.detach().numpy())
+            ps = torch.exp(y_hat) #Returns a new tensor with the exponential of the elements of the input tensor
+            top_p, top_class = ps.topk(1, dim=1)#Returns the k largest elements of the given input tensor along a given dimension
+            print(top_class)
+            r2_score = sklearn.metrics.r2_score(top_class.detach().numpy(), y.detach().numpy())
             scores.append(r2_score)
     fig, axs = plt.subplots(2)
     axs[0].plot(losses)
     axs[1].plot(scores)
-    fig.suptitle('vertically stacked subplots' )
+    fig.suptitle('losses/scores' )
     plt.show()
-#%%
-train_nn(net, train_data_loader, epochs=5, lr=0.000001, print_losses=True)
+
+train_nn(net, train_data_loader, epochs=10, lr=0.01, print_losses=True)
+
+# %%
+# main errors were related to flatten and convert y_hat to top_class
+# %%
