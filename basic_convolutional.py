@@ -76,7 +76,7 @@ class Conv_NeuralNetwork(torch.nn.Module):
         )
     def forward(self, X):
         return self.layers(X)
-
+#%%
 net = Conv_NeuralNetwork()
 
 # Define a loss function and optimizer
@@ -178,5 +178,23 @@ with torch.no_grad():
 print (f'accuracy test set: {100 * correct/total}')
 print (f' F1 score test set: {f1_score_conv}')
 # %%
+# accuracy per each class
+correct = { a: 0 for a in classes}
+total =  { a: 0 for a in classes}
 
+with torch.no_grad():
+    for images, labels in test_data_loader:
+        output = net(images)
+        proba, predicted = torch.max(output, dim=1)
+        for label, prediction in zip(labels,predicted):
+            if label == prediction :
+                correct[classes[label]] +=1
+            total [classes[label]]+=1
+                
+        
+for c, k in correct.items():
+   print (f'accuracy test set class {c}: {100 * k/total[c]}')
 
+# %%
+
+# %%
