@@ -76,6 +76,7 @@ model.fc = nn.Sequential(#nn.AvgPool2d(kernel_size=(2)),
                         nn.Linear(50, 3),
                         nn.LogSoftmax(dim=1))
 #%%
+
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.RMSprop(model.fc.parameters(), lr=0.003)
 model.to(device)
@@ -104,7 +105,7 @@ for epoch in range(epochs):
                 for inputs, labels in test_data_loader:
                     inputs, labels = inputs.to(device),labels.to(device)
                     logps = model.forward(inputs)
-                    batch_loss = criterion(logps.logits, labels)
+                    batch_loss = criterion(logps, labels)
                     test_loss += batch_loss.item()
                     
                     ps = torch.exp(logps)
@@ -124,8 +125,37 @@ plt.plot(test_losses, label='Validation loss')
 plt.show()
 plt.savefig('Inception_v3_part1_20_epochs_Loss_Graph.png') #./drive/MyDrive/models/
 
-torch.save(model.state_dict(), 'Inception_v3_part1_20_epochs.pt')#./drive/MyDrive/models/
-print('part one completed kkkkkkkkkkkkkkkkkkkkkkkk')
+
+
+state = {'epoch': epoch + 1, 'state_dict': model.state_dict(),
+             'optimizer': optimizer.state_dict() }
+
+def save_ckp(state, checkpoint_dir):
+    f_path = checkpoint_dir / 'checkpoint.pth'
+    torch.save(state, f_path)
+save_ckp(state, 'inception_v3_')#./drive/MyDrive/models/
+print('part one completed')
+#%%
+import os
+def load_checkpoint(model, optimizer, losslogger, filename='inception_v3_/checkpoint.pth.tar'):
+    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
+    start_epoch = 0
+    if os.path.isfile(filename):
+        print("=> loading checkpoint '{}'".format(filename))
+        checkpoint = torch.load(filename)
+        start_epoch = checkpoint['epoch']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(filename, checkpoint['epoch']))
+    else:
+        print("=> no checkpoint found at '{}'".format(filename))
+
+    return model, optimizer, start_epoch
+
+model, optimizer, start_epoch, losslogger = load_checkpoint(model, optimizer)
+model = model.to(device)
+
 #%%
 
 
@@ -147,8 +177,6 @@ print('part one completed kkkkkkkkkkkkkkkkkkkkkkkk')
 
 
 
-
-#%%%
 # counting parameters pre children
 # count_layer = 0
 # for layer in model.children():
@@ -168,6 +196,20 @@ print('part one completed kkkkkkkkkkkkkkkkkkkkkkkk')
 
 # layers = flatten(model)
 # print (len(layers))
+#%%%
+model = models.inception_v3(pretrained=True)
+model.fc = nn.Sequential(#nn.AvgPool2d(kernel_size=(2)),
+                        nn.Linear(model.fc.in_features, 512),
+                        nn.ReLU(),
+                        nn.Dropout(0.2),
+                        nn.Linear(512, 50),
+                        nn.ReLU(),
+                        nn.Dropout(0.2),
+                        nn.Linear(50, 3),
+                        nn.LogSoftmax(dim=1))
+                        
+model.load_state_dict(torch.load('Inception_v3_part1_2_epochs.pt'))
+
 
 # freeze the two top blocks, the first 249 layers
 for k, param in enumerate(model.parameters()):
@@ -178,7 +220,9 @@ for k, param in enumerate(model.parameters()):
             
   else:
         param.requires_grad = True
-
+criterion = nn.NLLLoss()
+logps = model.forward(inputs)
+loss = criterion(logps.logits, labels)
 
 #%%
 # keep training model with SGD and learning rate 0.0001
@@ -208,7 +252,7 @@ for epoch in range(epochs):
                 for inputs, labels in test_data_loader:
                     inputs, labels = inputs.to(device),labels.to(device)
                     logps = model.forward(inputs)
-                    batch_loss = criterion(logps.logits, labels)
+                    batch_loss = criterion(logps, labels)
                     test_loss += batch_loss.item()
                     
                     ps = torch.exp(logps)
