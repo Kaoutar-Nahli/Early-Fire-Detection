@@ -18,7 +18,18 @@ from sklearn import preprocessing
 from sklearn.metrics import f1_score
 import torch.optim as optim
 import torchvision
+#%%
+#pip install tensorflow
+from tensorflow import summary
+%load_ext tensorboard
+import datetime
+current_time = str(datetime.datetime.now().timestamp())
+train_log_dir = 'logs/tensorboard/train/' + current_time
+test_log_dir = 'logs/tensorboard/test/' + current_time
+train_summary_writer = summary.create_file_writer(train_log_dir)
+test_summary_writer = summary.create_file_writer(test_log_dir)
 
+#%%
 transforms_train = transforms.Compose([transforms.Resize(225),
                                        transforms.CenterCrop(224),
                                        transforms.ToTensor(),
@@ -118,83 +129,38 @@ def train_nn(model, train_dataloader, epochs=10, lr=0.01):
                   f"Train loss: {running_loss/20:.3f}.. " # running loss is calculated per each batch and printed every : print_every
                   f"Test loss: {test_loss/len(test_data_loader):.3f}.. "# test loss is the sum of the batch loss in the test data and divided by number of batches= 300/64
                   f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
-    
+            
     plt.plot(train_losses, label='Training loss')
     plt.plot(test_losses, label='Validation loss')
     plt.show()
     plt.savefig('Covolutional_Loss_20_epochs.png')
 
-train_nn(net, train_data_loader, epochs=10, lr=0.01)
-
-# %%
-from datetime import datetime
-now = datetime.now()
-dt_string = f'{now.strftime("%d/%m/%Y-%H%M%S")}-basic_convolutional'
+train_nn(net, train_data_loader, epochs=500, lr=0.01)
+#%%
+%tensorboard --logdir logs/tensorboard
+#%%
+#from datetime import datetime
+#now = datetime.now()
+#dt_string = f'{now.strftime("%d/%m/%Y-%H%M%S")}-basic_convolutional'
 
 torch.save(net.state_dict(), 'basic_convolutional01.pt')
 # main errors were related to flatten and convert y_hat to top_class
 # %%
 #loading back model
 net = Conv_NeuralNetwork()
-net.load_state_dict(torch.load('basic_convolutional.pt'))
+net.load_state_dict(torch.load('basic_convolutional01.pt'))
 
-#%%
-# display an image from the test set
-dataiter = iter(test_data_loader)
-images, labels = dataiter.next()
-images = images[:4]
-labels = labels[:4]
-#print images
-import torchvision
-import numpy
-def imshow(img):
-    img = img / 2 + 0.5 #unnormalize
-    npimg = img.numpy()
-    plt.imshow(numpy.transpose(npimg,(1,2,0)))
-    plt.show()
-imshow(torchvision.utils.make_grid(images))
-#%%
-print('Truth:', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
+
+
 # %%
 # let see what the neural network thinks
-outputs = net(images)
-a , predicted = torch.max(outputs, 1)
-print('Predicted:', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
-# %%
-labels.size()
-# %%
-#Accuracy  and F1 score
-from sklearn.metrics import f1_score
-correct = 0
-total = 0
-with torch.no_grad():
-    for images, labels in test_data_loader:
-        output = net(images)
-        proba, predicted = torch.max(output, dim=1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-        f1_score_conv = f1_score(predicted.detach().numpy(), labels.detach().numpy(),average='micro')
 
-print (f'accuracy test set: {100 * correct/total}')
-print (f' F1 score test set: {f1_score_conv}')
-# %%
-# accuracy per each class
-correct = { a: 0 for a in classes}
-total =  { a: 0 for a in classes}
-
-with torch.no_grad():
-    for images, labels in test_data_loader:
-        output = net(images)
-        proba, predicted = torch.max(output, dim=1)
-        for label, prediction in zip(labels,predicted):
-            if label == prediction :
-                correct[classes[label]] +=1
-            total [classes[label]]+=1
-                
-        
-for c, k in correct.items():
-   print (f'accuracy test set class {c}: {100 * k/total[c]}')
 
 # %%
+#Epoch 10/500.. Train loss: 19.678.. Test loss: 0.818.. Test accuracy: 0.628
+#Epoch 20/500.. Train loss: 30.343.. Test loss: 0.728.. Test accuracy: 0.737
 
+
+# Epoch 340/500.. Train loss: 41.124.. Test loss: 3.057.. Test accuracy: 0.657
+# Epoch 350/500.. Train loss: 41.126.. Test loss: 3.024.. Test accuracy: 0.661
 # %%
