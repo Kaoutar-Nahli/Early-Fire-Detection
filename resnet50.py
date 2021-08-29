@@ -40,7 +40,9 @@ class Resnet_model():
                                 nn.LogSoftmax(dim=1))
         self.epochs = epochs
         if drive:
-             self.model_name = 'model_resnet50_'+ datetime.datetime.now().strftime("%Y%m%d%H")
+             self.model_name = './drive/MyDrive/models/model_resnet50_'+ datetime.datetime.now().strftime("%Y%m%d%H")
+        self.model_name = 'models/model_resnet50_'+ epochs + datetime.datetime.now().strftime("%Y%m%d%H")
+
 
     
     def train(self, device, lr, train_data_loader, test_data_loader ):
