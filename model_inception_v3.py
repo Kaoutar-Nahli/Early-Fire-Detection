@@ -104,7 +104,7 @@ for epoch in range(epochs):
                 for inputs, labels in test_data_loader:
                     inputs, labels = inputs.to(device),labels.to(device)
                     logps = model.forward(inputs)
-                    batch_loss = criterion(logps, labels)
+                    batch_loss = criterion(logps.logits, labels)
                     test_loss += batch_loss.item()
                     
                     ps = torch.exp(logps)
@@ -125,7 +125,7 @@ plt.show()
 plt.savefig('Inception_v3_part1_20_epochs_Loss_Graph.png') #./drive/MyDrive/models/
 
 torch.save(model.state_dict(), 'Inception_v3_part1_20_epochs.pt')#./drive/MyDrive/models/
-print('kkkkkkkkkkkkkkkkkkkkkkkk')
+print('part one completed kkkkkkkkkkkkkkkkkkkkkkkk')
 #%%
 
 
@@ -150,24 +150,24 @@ print('kkkkkkkkkkkkkkkkkkkkkkkk')
 
 #%%%
 # counting parameters pre children
-count_layer = 0
-for layer in model.children():
-    count_layer +=1
-    count_param = 0
-    for param in layer.parameters():
-        count_param +=1
-    print(count_layer , count_param)
+# count_layer = 0
+# for layer in model.children():
+#     count_layer +=1
+#     count_param = 0
+#     for param in layer.parameters():
+#         count_param +=1
+#     print(count_layer , count_param)
 
 #counting children
-def flatten(el):
-    flattened = [flatten(children) for children in el.children()]
-    res = [el]
-    for c in flattened:
-        res += c
-    return res
+# def flatten(el):
+#     flattened = [flatten(children) for children in el.children()]
+#     res = [el]
+#     for c in flattened:
+#         res += c
+#     return res
 
-layers = flatten(model)
-print (len(layers))
+# layers = flatten(model)
+# print (len(layers))
 
 # freeze the two top blocks, the first 249 layers
 for k, param in enumerate(model.parameters()):
@@ -180,7 +180,7 @@ for k, param in enumerate(model.parameters()):
         param.requires_grad = True
 
 
-
+#%%
 # keep training model with SGD and learning rate 0.0001
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.fc.parameters(), lr=0.0000001)
@@ -195,7 +195,7 @@ for epoch in range(epochs):
         inputs, labels = inputs.to(device), labels.to(device)
         optimizer.zero_grad()
         logps = model.forward(inputs)
-        loss = criterion(logps, labels)
+        loss = criterion(logps.logits, labels)
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
@@ -208,7 +208,7 @@ for epoch in range(epochs):
                 for inputs, labels in test_data_loader:
                     inputs, labels = inputs.to(device),labels.to(device)
                     logps = model.forward(inputs)
-                    batch_loss = criterion(logps, labels)
+                    batch_loss = criterion(logps.logits, labels)
                     test_loss += batch_loss.item()
                     
                     ps = torch.exp(logps)
@@ -226,7 +226,7 @@ for epoch in range(epochs):
 plt.plot(train_losses, label='Training loss')
 plt.plot(test_losses, label='Validation loss')
 plt.show()
-plt.savefig('Inception_v3_part1_20_epochs_Loss_Graph.png') #./drive/MyDrive/models/
+plt.savefig('Inception_v3_part2_20_epochs_Loss_Graph.png') #./drive/MyDrive/models/
 
-torch.save(model.state_dict(), 'Inception_v3_part1_20_epochs.pt')#./drive/MyDrive/models/
+torch.save(model.state_dict(), 'Inception_v3_part2_20_epochs.pt')#./drive/MyDrive/models/
 # %%
