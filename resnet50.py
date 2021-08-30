@@ -27,7 +27,7 @@ import pandas as pd
 #freezing trained layers
 
 class Resnet_model():
-    def __init__(self, epochs, drive=True):
+    def __init__(self, epochs=20, drive=True):
         #initializing model
         self.model = models.resnet50(pretrained=True)
         for param in self.model.parameters():
@@ -41,7 +41,7 @@ class Resnet_model():
         self.epochs = epochs
         if drive:
              self.model_name = './drive/MyDrive/models/model_resnet50_'+ datetime.datetime.now().strftime("%Y%m%d%H")
-        self.model_name = 'models/model_resnet50_'+ epochs + datetime.datetime.now().strftime("%Y%m%d%H")
+        self.model_name = 'models/model_resnet50_'+ str( epochs) + str(datetime.datetime.now().strftime("%Y%m%d%H"))
 
 
     
