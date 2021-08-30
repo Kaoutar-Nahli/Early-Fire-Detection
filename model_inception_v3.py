@@ -80,8 +80,8 @@ class InceptionV3():
              self.model_name = './drive/MyDrive/models/model_resnet50_'+ datetime.datetime.now().strftime("%Y%m%d%H")
         self.model_name = 'models/model_resnet50_'+ str( epochs) + str(datetime.datetime.now().strftime("%Y%m%d%H"))
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.RMSprop(self.model.fc.parameters(), lr=self.lr)
-    
+        self.optimizer = optim.SGD(self.model.fc.parameters(), lr=0.0000001)
+
     def number_parameters(self):
        list_param = []
        for param in self.model.parameters():
@@ -89,7 +89,9 @@ class InceptionV3():
        return len(list_param)
         
 
-    def train(self, device, train_data_loader, test_data_loader ):
+    def train_part_1(self, device, train_data_loader, test_data_loader ):
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.RMSprop(self.model.fc.parameters(), lr=self.lr)
         self.model.to(device)
         epochs = self.epochs
         steps = 0
@@ -134,46 +136,93 @@ class InceptionV3():
                 plt.plot(train_losses, label='Training loss')
                 plt.plot(test_losses, label='Validation loss')
                 plt.show()
-                plt.savefig('./drive/MyDrive/models/Resnet_Loss_Graph_5_epochs.jpg')
+                plt.savefig(str(self.model_name)+'part_1.jpg')
                 df = pd.DataFrame(list(zip(train_losses, test_losses, accuracy_test)),
                 columns =['train_losses', 'test_losses','accuracy_test'])
-                df.to_csv(str(self.model_name)+'.csv')
-
+                df.to_csv(str(self.model_name)+'part_1.csv')
+                self.save_dict('part_1')
+    
+    def train_part_2(self, device, train_data_loader, test_data_loader ):
+        
+        # keep training model with SGD and learning rate 0.0001
+        for k, param in enumerate(self.model.parameters()):
+        
+            if k < 249:
+                    # freeze backbone layers
+                    param.requires_grad = False
+                        
+            else:
+                    param.requires_grad = True
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.SGD(self.model.fc.parameters(), lr=0.0000001)
+        self.model.to(device)
+        epochs = self.epochs
+        steps = 0
+        running_loss = 0
+        print_every = 1
+        train_losses, test_losses, accuracy_test = [], [], []
+        for epoch in range(epochs):
+            for inputs, labels in train_data_loader:
+                steps += 1
+                inputs, labels = inputs.to(device), labels.to(device)
+                self.optimizer.zero_grad()
+                logps = self.model.forward(inputs)
+                loss = self.criterion(logps.logits, labels)
+                loss.backward()
+                self.optimizer.step()
+                running_loss += loss.item()
+                
+                if steps % print_every == 0:
+                    test_loss = 0
+                    accuracy = 0
+                    self.model.eval()
+                    with torch.no_grad():
+                        for inputs, labels in test_data_loader:
+                            inputs, labels = inputs.to(device),labels.to(device)
+                            logps = self.model.forward(inputs)
+                            batch_loss = self.criterion(logps, labels)
+                            test_loss += batch_loss.item()
+                            
+                            ps = torch.exp(logps)
+                            top_p, top_class = ps.topk(1, dim=1)
+                            equals = top_class == labels.view(*top_class.shape)
+                            accuracy +=torch.mean(equals.type(torch.FloatTensor)).item()
+                    train_losses.append(running_loss/print_every)
+                    test_losses.append(test_loss/len(test_data_loader))    
+                    accuracy_test.append(accuracy/len(test_data_loader))                
+                    print(f"Epoch {epoch+1}/{epochs}.. "
+                        f"Train loss: {running_loss/print_every:.3f}.. "
+                        f"Test loss: {test_loss/len(test_data_loader):.3f}.. "
+                        f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
+                    running_loss = 0
+                    self.model.train()
+                plt.plot(train_losses, label='Training loss')
+                plt.plot(test_losses, label='Validation loss')
+                plt.show()
+                plt.savefig(str(self.model_name)+'part_2.jpg')
+                df = pd.DataFrame(list(zip(train_losses, test_losses, accuracy_test)),
+                columns =['train_losses', 'test_losses','accuracy_test'])
+                df.to_csv(str(self.model_name)+'part_2.csv')
+                self.save_dict('part_2')
+    
     
 
-    def save_dict(self):
-        torch.save(self.model.state_dict(),str(self.model_name)+'.pt')
+    def save_dict(self, part):
+        torch.save(self.model.state_dict(), str(self.model_name) + str(part) + '.pt')
     
-    def save_all(self):
+    def save_all(self, part):
         state = {'epoch': self.epochs + 1, 'state_dict': self.model.state_dict(),
                         'optimizer': self.optimizer.state_dict() }
 
-        f_path = str(self.model_name)+'.pt'
+        f_path = str(self.model_name) + self(part) + '.pt'
         #os.path.join(checkpoint_dir, 'checkpoint.pth') 
 
         torch.save(state, f_path)
 
 
-#%%    
-#%%
 
-
-
-
-
-
-
-def save_ckp(state, checkpoint_dir):
-    f_path = os.path.join(checkpoint_dir, 'checkpoint.pth') 
-    print(f_path)
-    torch.save(state, f_path)
-save_ckp(state, './drive/MyDrive/models')#
-print('part one completed')
-#%%
 #if loading model is required after loading model to device
 #model = model.to(device) after loading model trained previously in different parameters
-
-#%%
 # counting parameters pre children
 # count_layer = 0
 # for layer in model.children():
@@ -193,68 +242,3 @@ print('part one completed')
 
 # layers = flatten(model)
 # print (len(layers))
-#%%%
-
-
-
-# freeze the two top blocks, the first 249 layers
-for k, param in enumerate(model.parameters()):
-  
-  if k < 249:
-        # freeze backbone layers
-        param.requires_grad = False
-            
-  else:
-        param.requires_grad = True
-
-
-#%%
-# keep training model with SGD and learning rate 0.0001
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.fc.parameters(), lr=0.0000001)
-epochs = 2
-steps = 0
-running_loss = 0
-print_every = 1
-train_losses, test_losses = [], []
-for epoch in range(epochs):
-    for inputs, labels in train_data_loader:
-        steps += 1
-        inputs, labels = inputs.to(device), labels.to(device)
-        optimizer.zero_grad()
-        logps = model.forward(inputs)
-        loss = criterion(logps.logits, labels)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
-        
-        if steps % print_every == 0:
-            test_loss = 0
-            accuracy = 0
-            model.eval()
-            with torch.no_grad():
-                for inputs, labels in test_data_loader:
-                    inputs, labels = inputs.to(device),labels.to(device)
-                    logps = model.forward(inputs)
-                    batch_loss = criterion(logps, labels)
-                    test_loss += batch_loss.item()
-                    
-                    ps = torch.exp(logps)
-                    top_p, top_class = ps.topk(1, dim=1)
-                    equals = top_class == labels.view(*top_class.shape)
-                    accuracy +=torch.mean(equals.type(torch.FloatTensor)).item()
-            train_losses.append(running_loss/len(train_data_loader))
-            test_losses.append(test_loss/len(test_data_loader))                    
-            print(f"Epoch {epoch+1}/{epochs}.. "
-                  f"Train loss: {running_loss/print_every:.3f}.. "
-                  f"Test loss: {test_loss/len(test_data_loader):.3f}.. "
-                  f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
-            running_loss = 0
-            model.train()
-plt.plot(train_losses, label='Training loss')
-plt.plot(test_losses, label='Validation loss')
-plt.show()
-plt.savefig('Inception_v3_part2_20_epochs_Loss_Graph.png') #./drive/MyDrive/models/
-
-torch.save(model.state_dict(), 'Inception_v3_part2_20_epochs.pt')#./drive/MyDrive/models/
-# %%
