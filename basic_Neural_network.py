@@ -85,24 +85,35 @@ def train_nn(model, train_dataloader, epochs=10, lr=0.01, print_losses=True):
             #y_hat = torch.argmax(y_hat, dim=1)
             #y_hat = torch.squeeze(y_hat)
             loss =criterion(y_hat,y)  # this only works if the target is dim-1 - should use n_labels
-            if print_losses:
-                print(f"loss:{loss}")
             loss.backward()  # Upgrades the .grad -- of each of the parameters (based on backpopulating through the NN)
             optimizer.step()
             losses.append(loss.item())
             ps = torch.exp(y_hat) #Returns a new tensor with the exponential of the elements of the input tensor
             top_p, top_class = ps.topk(1, dim=1)#Returns the k largest elements of the given input tensor along a given dimension
-            print(top_class)
-            r2_score = sklearn.metrics.r2_score(top_class.detach().numpy(), y.detach().numpy())
-            scores.append(r2_score)
+            f1_score = sklearn.metrics.f1_score(top_class.detach().numpy(), y.detach().numpy())
+            if print_losses:
+                print(f"loss:{loss}")
+                print(f"score:{f1_score}")
+            scores.append(f1_score)
     fig, axs = plt.subplots(2)
     axs[0].plot(losses)
     axs[1].plot(scores)
     fig.suptitle('losses/scores' )
     plt.show()
+    plt.savefig('basic_neural_network_10_epochs.png')
+    df = pd.DataFrame(list(zip(losses, scores)),
+               columns =['losses', 'scores'])
+    df.to_csv('basic_Neural_network_Loss_10_epochs')
 
 train_nn(net, train_data_loader, epochs=10, lr=0.01, print_losses=True)
 
+# score:0.08133971291866027
+# loss:0.8883010745048523
+# score:0.06394557823129254
+# loss:0.7468932867050171
+# score:0.4863563402889246
+
 # %%
+
 # main errors were related to flatten and convert y_hat to top_class
 # %%

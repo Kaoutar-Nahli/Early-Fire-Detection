@@ -54,8 +54,6 @@ test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle
 
 
 #%%
-x = train_data[0][0]
-print(x.shape)
 #plt.imshow(x.squeeze().numpy(), cmap='gray')
 #plt.show()
 

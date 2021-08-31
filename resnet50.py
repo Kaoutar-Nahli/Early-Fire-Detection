@@ -43,7 +43,11 @@ class Resnet_model():
              self.model_name = './drive/MyDrive/models/model_resnet50_'+ datetime.datetime.now().strftime("%Y%m%d%H")
         self.model_name = 'models/model_resnet50_'+ str( epochs) + str(datetime.datetime.now().strftime("%Y%m%d%H"))
 
-
+    def number_parameters(self):
+       list_param = []
+       for param in self.model.parameters():
+            list_param.append(param)# 291 parameters freez first 249
+       return len(list_param)
     
     def train(self, device, lr, train_data_loader, test_data_loader ):
         criterion = nn.NLLLoss()

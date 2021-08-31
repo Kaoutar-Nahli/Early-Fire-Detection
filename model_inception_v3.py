@@ -20,41 +20,13 @@ from sklearn import preprocessing
 from sklearn.metrics import f1_score
 import torch.optim as optim
 import os
+import datetime
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
-
-
-                                       
-transforms_test = transforms.Compose([transforms.Resize((299,299)),
-                                       #transforms.CenterCrop(299),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-transforms_train = transforms.Compose([transforms.Resize((299,299)),
-                                       transforms.AutoAugment(),
-                                       #transforms.CenterCrop(229),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
-
-train_data = datasets.ImageFolder(root='data/FIRE-SMOKE-DATASET/Train', transform=transforms_train) #drive/MyDrive/
-test_data = datasets.ImageFolder(root='data/FIRE-SMOKE-DATASET/Test', transform=transforms_test) #drive/MyDrive/
-print(len(train_data), len(test_data))
-
-
-#spliting the data
-train_data, val_data = torch.utils.data.random_split(train_data, [2400,300])
-
-#loading the data
-train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
-val_data_loader = torch.utils.data.DataLoader(val_data, batch_size=64, shuffle=True)
-test_data_loader = torch.utils.data.DataLoader(test_data,  batch_size=64, shuffle=True)
-print (train_data[0][0].size())
 #%%
 
 # model from How to Train an Image Classifier in PyTorch and use it to Perform Basic Inference on Single Images
 class InceptionV3():
-    def __init__(self, epochs=20, lr=0.01,drive=True):
+    def __init__(self, epochs=20, lr=0.0001,drive=True):
         #initializing model
         #https://pytorch.org/hub/pytorch_vision_inception_v3/
         self.model = models.inception_v3(pretrained=True)
@@ -63,8 +35,8 @@ class InceptionV3():
         for param in self.model.parameters():
             param.requires_grad = False
 
-      
         self.model.fc = nn.Sequential(#nn.AvgPool2d(kernel_size=(2)),
+                        #Flatten??
                         nn.Linear(self.model.fc.in_features, 512),
                         nn.ReLU(),
                         nn.Dropout(0.2),
@@ -242,3 +214,35 @@ class InceptionV3():
 
 # layers = flatten(model)
 # print (len(layers))
+
+if __name__ == 'main':
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+
+
+                                        
+    transforms_test = transforms.Compose([transforms.Resize((299,299)),
+                                        #transforms.CenterCrop(299),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    transforms_train = transforms.Compose([transforms.Resize((299,299)),
+                                        transforms.AutoAugment(),
+                                        #transforms.CenterCrop(229),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
+
+    train_data = datasets.ImageFolder(root='data/FIRE-SMOKE-DATASET/Train', transform=transforms_train) #drive/MyDrive/
+    test_data = datasets.ImageFolder(root='data/FIRE-SMOKE-DATASET/Test', transform=transforms_test) #drive/MyDrive/
+    print(len(train_data), len(test_data))
+
+
+    #spliting the data
+    train_data, val_data = torch.utils.data.random_split(train_data, [2400,300])
+
+    #loading the data
+    train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
+    val_data_loader = torch.utils.data.DataLoader(val_data, batch_size=64, shuffle=True)
+    test_data_loader = torch.utils.data.DataLoader(test_data,  batch_size=64, shuffle=True)
+    print (train_data[0][0].size())

@@ -147,8 +147,32 @@ torch.save(net.state_dict(), 'basic_convolutional01.pt')
 # main errors were related to flatten and convert y_hat to top_class
 # %%
 #loading back model
+#%%
+class Conv_NeuralNetwork(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = torch.nn.Sequential(
+            torch.nn.Conv2d(3,6,5),
+            torch.nn.ReLU(),
+            torch.nn.MaxPool2d(2,2),
+            torch.nn.Conv2d(6,16,5),
+            torch.nn.ReLU(),
+            torch.nn.MaxPool2d(2,2),
+            torch.nn.Flatten(),
+            torch.nn.Linear(44944,500),
+            torch.nn.ReLU(),
+            torch.nn.Linear(500,120),
+            torch.nn.ReLU(),
+            torch.nn.Linear(120,20),
+            torch.nn.ReLU(),
+            torch.nn.Linear(20,3),
+            #torch.nn.LogSoftmax(dim=1)
+        )
+    def forward(self, X):
+        return self.layers(X)
+#%%
 net = Conv_NeuralNetwork()
-net.load_state_dict(torch.load('basic_convolutional01.pt'))
+net.load_state_dict(torch.load('model_basic_conv/basic_convolutional.pt'))
 
 
 

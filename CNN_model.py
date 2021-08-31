@@ -88,7 +88,7 @@ net = CNN_model()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9) # create optimiser
 criterion = torch.nn.CrossEntropyLoss()
 
-def train_nn(model, train_dataloader, epochs=10, lr=0.01):
+def train_nn(model, train_dataloader, epochs=50, lr=0.01):
     train_losses = []
     test_losses = []
     steps = 0
@@ -103,7 +103,7 @@ def train_nn(model, train_dataloader, epochs=10, lr=0.01):
             optimizer.step()
             # print stat
             running_loss += loss.item()
-        if steps % 20 == 0:
+        if steps % 5 == 0:
             test_loss = 0
             accuracy = 0
             model.eval() # evaluation mode
@@ -120,23 +120,23 @@ def train_nn(model, train_dataloader, epochs=10, lr=0.01):
             train_losses.append(running_loss/len(train_data_loader))# training loss per batch (38 batchses), 64 points per batch, 2700 p0ints
             test_losses.append(test_loss/len(test_data_loader)) # test loss  calculated in the 300 points in batches?                
             print(f"Epoch {epoch+1}/{epochs}.. "
-                  f"Train loss: {running_loss/20:.3f}.. " # running loss is calculated per each batch and printed every : print_every
+                  f"Train loss: {running_loss/5:.3f}.. " # running loss is calculated per each batch and printed every : print_every
                   f"Test loss: {test_loss/len(test_data_loader):.3f}.. "# test loss is the sum of the batch loss in the test data and divided by number of batches= 300/64
                   f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
             running_loss = 0
     plt.plot(train_losses, label='Training loss')
     plt.plot(test_losses, label='Validation loss')
     plt.show()
-    plt.savefig('./drive/MyDrive/models/CNN_Model_Loss_1_epochs.png')
+   # plt.savefig('./drive/MyDrive/models/CNN_Model_Loss_1_epochs.png')
 
-train_nn(net, train_data_loader, epochs=500, lr=0.01)
+train_nn(net, train_data_loader, epochs=20, lr=0.01)
 
-#%%
+
 #from datetime import datetime
 #now = datetime.now()
 #dt_string = f'{now.strftime("%d/%m/%Y-%H%M%S")}-basic_convolutional'
 
-torch.save(net.state_dict(), './drive/MyDrive/models/CNN_Model_01.pt')
+torch.save(net.state_dict(), 'models/CNN_Model_01.pt')
 # main errors were related to flatten and convert y_hat to top_class
 # %%
 #loading back model
