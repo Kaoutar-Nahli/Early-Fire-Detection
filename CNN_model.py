@@ -10,13 +10,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime
 from os import path as os_path
-from torch.utils.data import DataLoader
-from sklearn import model_selection
-from sklearn import preprocessing
 from sklearn import preprocessing
 from sklearn.metrics import f1_score
 import torch.optim as optim
-import torchvision
+drive = False
+model_name = 'CNN'
 
 transforms_train = transforms.Compose([transforms.Resize(225),
                                        transforms.CenterCrop(224),
@@ -77,37 +75,64 @@ class CNN_model(torch.nn.Module):
             torch.nn.Linear(120,20),
             torch.nn.ReLU(),
             torch.nn.Linear(20,3),
-            #torch.nn.LogSoftmax(dim=1)
+            torch.nn.LogSoftmax(dim=1)
         )
     def forward(self, X):
         return self.layers(X)
+
+model = CNN_model()
+model.to(device)
 #%%
-net = CNN_model()
+from torch.utils.tensorboard import SummaryWriter
+#pip install tensorflow
+%load_ext tensorboard
+#%%
+epochs = 20
+lr = 0.0001
+lr_str = '0_0001'
+optimizer_name ='Adam'
+loss_name = 'NLLLoss'
+momentum = 0.9
 
 # Define a loss function and optimizer
-optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9) # create optimiser
+optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum) # create optimiser
 criterion = torch.nn.CrossEntropyLoss()
 
-def train_nn(model, train_dataloader, epochs=1, lr=0.01):
+
+
+steps = 0
+running_loss = 0
+print_every = 5
+train_losses, test_losses = [], []
+run_name = f'{model_name}_{epochs}_{lr_str}_{optimizer_name}_{loss_name} '
+if drive:
+   writer = SummaryWriter(f'./drive/MyDrive/runs/{run_name}')
+else:
+  writer = SummaryWriter(f'runs/{run_name}')
+
+
+
+def train(model, train_dataloader, epochs=epochs):
     train_losses = []
     test_losses = []
     steps = 0
     running_loss = 0
     print_every = 5
     for epoch in range(epochs): #for each epoch data is scanned in 40 batches of 64 points
-        for X,y in train_dataloader:
+        for inputs,labels in train_dataloader:
             steps+=1
             optimizer.zero_grad()
-            y_hat = net(X)
-            loss =criterion(y_hat,y)  # this only works if the target is dim-1 - should use n_labels
+            y_hat = model(inputs)
+            loss =criterion(y_hat,labels)  # this only works if the target is dim-1 - should use n_labels
             loss.backward()  # Upgrades the .grad -- of each of the parameters (based on backpopulating through the NN)
             optimizer.step()
             # print stat
             running_loss += loss.item()
-            print (loss.item(), running_loss)
+            writer.add_scalar('loss/train',loss.item(), steps)
         if steps % print_every == 0:
             test_loss = 0
             accuracy = 0
+            f1_score_sum = 0
             model.eval() # evaluation mode
             with torch.no_grad():
                 for inputs, labels in test_data_loader:
@@ -122,32 +147,40 @@ def train_nn(model, train_dataloader, epochs=1, lr=0.01):
                     equals = top_class == labels.view(*top_class.shape)
                     #Returns a new tensor with the same data as the self tensor but of a different shape
                     accuracy +=torch.mean(equals.type(torch.FloatTensor)).item()
+                    f1_score_conv = f1_score(top_class.cpu().detach().numpy(), labels.cpu().detach().numpy(),average='micro')
+                    f1_score_sum += f1_score_conv
             train_losses.append(running_loss/print_every)# 
             test_losses.append(test_loss/len(test_data_loader))               
             print(f"Epoch {epoch+1}/{epochs}.. "
                   f"Train loss: {running_loss/print_every:.3f}.. " 
                   f"Test loss: {test_loss/len(test_data_loader):.3f}.. "
                   f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
+            writer.add_scalar('loss/test',test_loss/len(test_data_loader), steps)
+            writer.add_scalar('accuracy/test',accuracy/len(test_data_loader), steps)
+            writer.add_scalar('F1_score/test',f1_score_sum/len(test_data_loader), steps)
             running_loss = 0
     plt.plot(train_losses, label='Training loss')
     plt.plot(test_losses, label='Validation loss')
     plt.show()
    # plt.savefig('./drive/MyDrive/models/CNN_Model_Loss_1_epochs.png')
 
-train_nn(net, train_data_loader, epochs=30, lr=0.01)
+train(model, train_data_loader, epochs=epochs)
 
 
-#from datetime import datetime
-#now = datetime.now()
-#dt_string = f'{now.strftime("%d/%m/%Y-%H%M%S")}-basic_convolutional'
+current_time = str(datetime.now().strftime("%d/%m/%Y-%H%M%S"))
+if drive:
+    path_models = f'./drive/MyDrive/models/{model_name}_{epochs}_{lr_str}_{optimizer_name}_{loss_name}_{current_time}.pt'
+else:
+    path_models = f'tests/{model_name}_{epochs}_{lr_str}_{optimizer_name}_{loss_name}_{current_time}.pt'
 
-torch.save(net.state_dict(), 'models/CNN_Model_02.pt')
+
+torch.save(model.state_dict(), path_models)
 # main errors were related to flatten and convert y_hat to top_class
 # %%
-print('a')
+
 #%%
 #loading back model
-net = CNN_model()
-net.load_state_dict(torch.load('./drive/MyDrive/models/CNN_01.pt.'))
+# net = CNN_model()
+# net.load_state_dict(torch.load('./drive/MyDrive/models/CNN_01.pt.'))
 
 #%%
