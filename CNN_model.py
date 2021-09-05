@@ -121,6 +121,7 @@ def train(model, train_dataloader, epochs=epochs):
     for epoch in range(epochs): #for each epoch data is scanned in 40 batches of 64 points
         for inputs,labels in train_dataloader:
             steps+=1
+            inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             y_hat = model(inputs)
             loss =criterion(y_hat,labels)  # this only works if the target is dim-1 - should use n_labels
@@ -129,36 +130,36 @@ def train(model, train_dataloader, epochs=epochs):
             # print stat
             running_loss += loss.item()
             writer.add_scalar('loss/train',loss.item(), steps)
-        if steps % print_every == 0:
-            test_loss = 0
-            accuracy = 0
-            f1_score_sum = 0
-            model.eval() # evaluation mode
-            with torch.no_grad():
-                for inputs, labels in test_data_loader:
-                    #inputs, labels = inputs.to(device),labels.to(device)
-                    logps = model.forward(inputs)
-                    batch_loss = criterion(logps, labels)
-                    test_loss += batch_loss.item()
-                    ps = torch.exp(logps) 
-                    #Returns a new tensor with the exponential of the elements of the input tensor
-                    top_p, top_class = ps.topk(1, dim=1)
-                    #Returns the k largest elements of the given input tensor along a given dimension
-                    equals = top_class == labels.view(*top_class.shape)
-                    #Returns a new tensor with the same data as the self tensor but of a different shape
-                    accuracy +=torch.mean(equals.type(torch.FloatTensor)).item()
-                    f1_score_conv = f1_score(top_class.cpu().detach().numpy(), labels.cpu().detach().numpy(),average='micro')
-                    f1_score_sum += f1_score_conv
-            train_losses.append(running_loss/print_every)# 
-            test_losses.append(test_loss/len(test_data_loader))               
-            print(f"Epoch {epoch+1}/{epochs}.. "
-                  f"Train loss: {running_loss/print_every:.3f}.. " 
-                  f"Test loss: {test_loss/len(test_data_loader):.3f}.. "
-                  f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
-            writer.add_scalar('loss/test',test_loss/len(test_data_loader), steps)
-            writer.add_scalar('accuracy/test',accuracy/len(test_data_loader), steps)
-            writer.add_scalar('F1_score/test',f1_score_sum/len(test_data_loader), steps)
-            running_loss = 0
+            if steps % print_every == 0:
+                test_loss = 0
+                accuracy = 0
+                f1_score_sum = 0
+                model.eval() # evaluation mode
+                with torch.no_grad():
+                    for inputs, labels in test_data_loader:
+                        #inputs, labels = inputs.to(device),labels.to(device)
+                        logps = model.forward(inputs)
+                        batch_loss = criterion(logps, labels)
+                        test_loss += batch_loss.item()
+                        ps = torch.exp(logps) 
+                        #Returns a new tensor with the exponential of the elements of the input tensor
+                        top_p, top_class = ps.topk(1, dim=1)
+                        #Returns the k largest elements of the given input tensor along a given dimension
+                        equals = top_class == labels.view(*top_class.shape)
+                        #Returns a new tensor with the same data as the self tensor but of a different shape
+                        accuracy +=torch.mean(equals.type(torch.FloatTensor)).item()
+                        f1_score_conv = f1_score(top_class.cpu().detach().numpy(), labels.cpu().detach().numpy(),average='micro')
+                        f1_score_sum += f1_score_conv
+                train_losses.append(running_loss/print_every)# 
+                test_losses.append(test_loss/len(test_data_loader))               
+                print(f"Epoch {epoch+1}/{epochs}.. "
+                    f"Train loss: {running_loss/print_every:.3f}.. " 
+                    f"Test loss: {test_loss/len(test_data_loader):.3f}.. "
+                    f"Test accuracy: {accuracy/len(test_data_loader):.3f}")
+                writer.add_scalar('loss/test',test_loss/len(test_data_loader), steps)
+                writer.add_scalar('accuracy/test',accuracy/len(test_data_loader), steps)
+                writer.add_scalar('F1_score/test',f1_score_sum/len(test_data_loader), steps)
+                running_loss = 0
     plt.plot(train_losses, label='Training loss')
     plt.plot(test_losses, label='Validation loss')
     plt.show()
@@ -167,7 +168,7 @@ def train(model, train_dataloader, epochs=epochs):
 train(model, train_data_loader, epochs=epochs)
 
 
-current_time = str(datetime.now().strftime("%d/%m/%Y-%H%M%S"))
+current_time = str(datetime.now().timestamp())
 if drive:
     path_models = f'./drive/MyDrive/models/{model_name}_{epochs}_{lr_str}_{optimizer_name}_{loss_name}_{current_time}.pt'
 else:
